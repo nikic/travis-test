@@ -24,6 +24,8 @@ while ($row = mysqli_fetch_assoc($result)) {
     echo $row['Variable_name'] . ' => ' . $row['Value'] . "\n";
 }
 
+echo "\n\nCharset: " . mysqli_character_set_name($link);
+
 /*require_once("mysqli_connect.php");
 
 	$tmp    = NULL;
