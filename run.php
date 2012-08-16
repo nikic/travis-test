@@ -5,8 +5,21 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 //var_dump($db->query('SHOW COLLATION')->fetchAll());
 
+$link = mysqli_connect('localhost', 'root', '', 'test');
 
-require_once("mysqli_connect.php");
+mysqli_query($link, 'CREATE TABLE test(
+    a CHAR(1) COLLATE latin1_general_ci,
+    b CHAR(1) COLLATE utf8_general_ci,
+    c CHAR(1) COLLATE utf8_unicode_ci
+)');
+
+mysqli_query($link, 'INSERT INTO test (a, b, c) VALUES ("a", "b", "c")');
+
+$result = mysqli_query($link, 'SELECT a, b, c FROM test');
+$fields = mysqli_fetch_fields($result);
+var_dump($fields);
+
+/*require_once("mysqli_connect.php");
 
 	$tmp    = NULL;
 	$link   = NULL;
@@ -25,11 +38,11 @@ require_once("mysqli_connect.php");
 		printf("[003] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 	}
 
-	/* ID column, binary charset */
+	// ID column, binary charset
 	$tmp = mysqli_fetch_field($res);
 	var_dump($tmp);
 
-	/* label column, result set charset */
+	// label column, result set charset
 	$tmp = mysqli_fetch_field($res);
 	var_dump($tmp);
 	if ($tmp->charsetnr != $charsets['results']['nr']) {
@@ -68,7 +81,7 @@ require_once("mysqli_connect.php");
 		printf("[010] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 	}
 	var_dump(mysqli_fetch_assoc($res));
-	/* binary */
+	// binary
 	var_dump(mysqli_fetch_field($res));
 	mysqli_free_result($res);
 
@@ -76,4 +89,4 @@ require_once("mysqli_connect.php");
 
 	mysqli_close($link);
 
-	print "done!";
+	print "done!";*/
