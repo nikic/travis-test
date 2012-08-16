@@ -19,6 +19,11 @@ $result = mysqli_query($link, 'SELECT a, b, c FROM test');
 $fields = mysqli_fetch_fields($result);
 var_dump($fields);
 
+$result = mysqli_query($link, 'SHOW VARIABLES LIKE "%character%"');
+while ($row = mysqli_fetch_assoc($result)) {
+    var_dump($row);
+}
+
 /*require_once("mysqli_connect.php");
 
 	$tmp    = NULL;
