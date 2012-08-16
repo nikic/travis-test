@@ -72,6 +72,8 @@ require_once("mysqli_connect.php");
 	var_dump(mysqli_fetch_field($res));
 	mysqli_free_result($res);
 
+
+
 	mysqli_close($link);
 
 	print "done!";
