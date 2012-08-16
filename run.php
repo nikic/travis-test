@@ -19,7 +19,7 @@ $result = mysqli_query($link, 'SELECT a, b, c FROM test');
 $fields = mysqli_fetch_fields($result);
 var_dump($fields);
 
-$result = mysqli_query($link, 'SHOW VARIABLES"');
+$result = mysqli_query($link, 'SHOW VARIABLES');
 while ($row = mysqli_fetch_assoc($result)) {
     echo $row['Variable_name'] . ' => ' . $row['Value'] . "\n";
 }
