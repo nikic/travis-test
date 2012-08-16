@@ -25,6 +25,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 
 echo "\n\nCharset: " . mysqli_character_set_name($link);
+var_dump(mysqli_get_charset($link));
 
 /*require_once("mysqli_connect.php");
 
