@@ -1,4 +1,4 @@
 language: php
 php: 5.4
 #before_script: mysql -u root -e "CREATE DATABASE IF NOT EXISTS test"
-script: php bug61679.php
+script: php test.php
