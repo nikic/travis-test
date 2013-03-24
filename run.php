@@ -2,8 +2,11 @@
 
 $db = new PDO('mysql:host=localhost;dbname=information_schema', 'root');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-//var_dump($db->query('SHOW COLLATION')->fetchAll());
+$s = $db->query('SHOW COLLATION ORDER BY Id ASC');
+$s->setFetchMode(PDO::FETCH_ASSOC);
+foreach ($s as $info) {
+    echo implode(' ', $info), "\n";
+}
 
 $link = mysqli_connect('localhost', 'root', '', 'test');
 
