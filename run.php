@@ -2,7 +2,7 @@
 
 $db = new PDO('mysql:host=localhost;dbname=information_schema', 'root');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$s = $db->query('SHOW COLLATION ORDER BY Id ASC');
+$s = $db->query('SHOW COLLATION');
 $r = $s->fetchAll(PDO::FETCH_ASSOC);
 usort($r, function($a, $b) { return $a['Id'] < $b['Id'] ? -1 : 1; });
 foreach ($r as $info) {
