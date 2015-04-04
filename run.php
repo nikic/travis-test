@@ -38,9 +38,12 @@ try {
     $affected = $db1->exec(sprintf('KILL %d', $con1));
     // Server needs some think-time sometimes
     sleep(1);
+    var_dump($db1->errorCode());
+    var_dump($db1->errorInfo());
     if ('00000' == $db1->errorCode()) {
+        echo "Kill worked\n";
         // looks like KILL has worked ? Or not... TODO: why no warning with libmysql?!
-        @$db1->exec("SET @pdo_persistent_connection=2");
+        $db1->exec("SET @pdo_persistent_connection=2");
         // but now I want to see some error...
         if ('HY000' != $db1->errorCode())
             printf("[004] Wrong error code %s\n", $db1->errorCode());
@@ -55,14 +58,18 @@ try {
     $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
     $con1 = $tmp['_con1'];
 
-    $db2 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
-    var_dump($db2);
-    $stmt = $db2->query('SELECT CONNECTION_ID() as _con2');
-    $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
-    $con2 = $tmp['_con2'];
+    try {
+        $db2 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+        var_dump($db2);
+        $stmt = $db2->query('SELECT CONNECTION_ID() as _con2');
+        $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
+        $con2 = $tmp['_con2'];
 
-    if ($con1 == $con2)
-        printf("[006] Looks like the persistent and the non persistent connection are using the same link?!\n");
+        if ($con1 == $con2)
+            printf("[006] Looks like the persistent and the non persistent connection are using the same link?!\n");
+    } catch (PdoException $e) {
+        echo $e, "\n";
+    }
 
     // lets go crazy and create a few pconnections...
     $connections = array();
