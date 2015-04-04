@@ -1,104 +1,87 @@
 <?php
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'mysql_pdo_test.inc');
 
-$db = new PDO('mysql:host=localhost;dbname=information_schema', 'root');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$s = $db->query('SHOW COLLATION');
-$r = $s->fetchAll(PDO::FETCH_ASSOC);
-usort($r, function($a, $b) { return $a['Id'] < $b['Id'] ? -1 : 1; });
-foreach ($r as $info) {
-    echo implode(' ', $info), "\n";
+try {
+
+    $dsn = MySQLPDOTest::getDSN();
+    $user = PDO_MYSQL_TEST_USER;
+    $pass = PDO_MYSQL_TEST_PASS;
+
+    $db1 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+    $db2 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+    $db1->exec('SET @pdo_persistent_connection=1');
+    $stmt = $db2->query('SELECT @pdo_persistent_connection as _pers');
+    $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($tmp['_pers'] !== '1')
+        printf("[001] Both handles should use the same connection.");
+
+    $stmt = $db1->query('SELECT CONNECTION_ID() as _con1');
+    $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
+    $con1 = $tmp['_con1'];
+
+    $stmt = $db2->query('SELECT CONNECTION_ID() as _con2');
+    $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
+    $con2 = $tmp['_con2'];
+
+    if ($con1 !== $con2)
+        printf("[002] Both handles should report the same MySQL thread ID");
+
+    $db1 = NULL; /* should be equal to closing to my understanding */
+    $db1 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+    $stmt = $db1->query('SELECT CONNECTION_ID() as _con1');
+    $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
+    $con1 = $tmp['_con1'];
+
+    if ($con1 !== $con2)
+        printf("[003] Both handles should report the same MySQL thread ID");
+
+    $affected = $db1->exec(sprintf('KILL %d', $con1));
+    // Server needs some think-time sometimes
+    sleep(1);
+    if ('00000' == $db1->errorCode()) {
+        // looks like KILL has worked ? Or not... TODO: why no warning with libmysql?!
+        @$db1->exec("SET @pdo_persistent_connection=2");
+        // but now I want to see some error...
+        if ('HY000' != $db1->errorCode())
+            printf("[004] Wrong error code %s\n", $db1->errorCode());
+
+        $tmp = implode(' ', $db1->errorInfo());
+        if (!strstr($tmp, '2006'))
+            printf("[005] Wrong error info %s\n", $tmp);
+    }
+
+    $db1 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => false));
+    $stmt = $db1->query('SELECT CONNECTION_ID() as _con1');
+    $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
+    $con1 = $tmp['_con1'];
+
+    @$db2 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+    $stmt = $db2->query('SELECT CONNECTION_ID() as _con2');
+    $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
+    $con2 = $tmp['_con2'];
+
+    if ($con1 == $con2)
+        printf("[006] Looks like the persistent and the non persistent connection are using the same link?!\n");
+
+    // lets go crazy and create a few pconnections...
+    $connections = array();
+    for ($i = 0; $i <= 20; $i++) {
+        $connections[$i] = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+    }
+    do {
+        $i = mt_rand(0, 20);
+        if (isset($connections[$i]))
+            unset($connections[$i]);
+    } while (!empty($connections));
+
+
+} catch (PDOException $e) {
+    printf("[001] %s, [%s] %s [%s] %s\n",
+        $e->getMessage(),
+        (is_object($db1)) ? $db1->errorCode() : 'n/a',
+        (is_object($db1)) ? implode(' ', $db1->errorInfo()) : 'n/a',
+        (is_object($db2)) ? $db2->errorCode() : 'n/a',
+        (is_object($db2)) ? implode(' ', $db2->errorInfo()) : 'n/a');
 }
 
-$link = mysqli_connect('localhost', 'root', '', 'test');
-
-mysqli_query($link, 'CREATE TABLE test(
-    a CHAR(1) COLLATE latin1_general_ci,
-    b CHAR(1) COLLATE utf8_general_ci,
-    c CHAR(1) COLLATE utf8_unicode_ci
-)');
-
-mysqli_query($link, 'INSERT INTO test (a, b, c) VALUES ("a", "b", "c")');
-
-$result = mysqli_query($link, 'SELECT a, b, c FROM test');
-$fields = mysqli_fetch_fields($result);
-var_dump($fields);
-
-$result = mysqli_query($link, 'SHOW VARIABLES');
-while ($row = mysqli_fetch_assoc($result)) {
-    echo $row['Variable_name'] . ' => ' . $row['Value'] . "\n";
-}
-
-echo "\n\nCharset: " . mysqli_character_set_name($link);
-var_dump(mysqli_get_charset($link));
-
-/*require_once("mysqli_connect.php");
-
-	$tmp    = NULL;
-	$link   = NULL;
-
-	// Note: no SQL type tests, internally the same function gets used as for mysqli_fetch_array() which does a lot of SQL type test
-	if (!is_null($tmp = @mysqli_fetch_field()))
-		printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-	if (!is_null($tmp = @mysqli_fetch_field($link)))
-		printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-	require('mysqli_table.php');
-
-	$charsets = my_get_charsets($link);
-	if (!$res = mysqli_query($link, "SELECT id AS ID, label FROM test AS TEST ORDER BY id LIMIT 1")) {
-		printf("[003] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
-	}
-
-	// ID column, binary charset
-	$tmp = mysqli_fetch_field($res);
-	var_dump($tmp);
-
-	// label column, result set charset
-	$tmp = mysqli_fetch_field($res);
-	var_dump($tmp);
-	if ($tmp->charsetnr != $charsets['results']['nr']) {
-		printf("[004] Expecting charset %s/%d got %d\n",
-			$charsets['results']['charset'],
-			$charsets['results']['nr'], $tmp->charsetnr);
-	}
-	if ($tmp->length != (1 * $charsets['results']['maxlen'])) {
-		printf("[005] Expecting length %d got %d\n",
-			$charsets['results']['maxlen'],
-			$tmp->max_length);
-	}
-	if ($tmp->db != $db) {
-		printf("011] Expecting database '%s' got '%s'\n",
-		  $db, $tmp->db);
-	}
-
-	var_dump(mysqli_fetch_field($res));
-
-	mysqli_free_result($res);
-
-	// Read http://bugs.php.net/bug.php?id=42344 on defaults!
-	if (NULL !== ($tmp = mysqli_fetch_field($res)))
-		printf("[006] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-	if (!mysqli_query($link, "DROP TABLE IF EXISTS test"))
-		printf("[007] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
-
-	if (!mysqli_query($link, "CREATE TABLE test(id INT NOT NULL DEFAULT 1)"))
-		printf("[008] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
-
-	if (!mysqli_query($link, "INSERT INTO test(id) VALUES (2)"))
-		printf("[009] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
-
-	if (!$res = mysqli_query($link, "SELECT id as _default_test FROM test")) {
-		printf("[010] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
-	}
-	var_dump(mysqli_fetch_assoc($res));
-	// binary
-	var_dump(mysqli_fetch_field($res));
-	mysqli_free_result($res);
-
-
-
-	mysqli_close($link);
-
-	print "done!";*/
+print "done!";

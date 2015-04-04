@@ -1,5 +1,15 @@
 language: php
-php: 5.4
-#before_script: mysql -u root -e "CREATE DATABASE IF NOT EXISTS test"
+php: 7.0
+env:
+    global:
+      - MYSQL_TEST_HOST=127.0.0.1
+      - MYSQL_TEST_USER=travis
+      - PDO_MYSQL_TEST_DSN="mysql:host=127.0.0.1;dbname=test"
+      - PDO_MYSQL_TEST_USER=travis
+      - PDO_MYSQL_TEST_PASS=
+      - PDO_MYSQL_TEST_HOST=127.0.0.1
+      - REPORT_EXIT_STATUS=1
+
+before_script: mysql -u root -e "CREATE DATABASE IF NOT EXISTS test"
 script: php run.php
 #script: php run-tests.php -p `which php` --show-diff bug34657.phpt
