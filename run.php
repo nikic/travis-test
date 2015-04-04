@@ -55,7 +55,8 @@ try {
     $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
     $con1 = $tmp['_con1'];
 
-    @$db2 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+    $db2 = new PDO($dsn, $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+    var_dump($db2);
     $stmt = $db2->query('SELECT CONNECTION_ID() as _con2');
     $tmp = $stmt->fetch(PDO::FETCH_ASSOC);
     $con2 = $tmp['_con2'];
